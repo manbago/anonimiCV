@@ -23,7 +23,7 @@ export default function Home() {
           </h2>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Sube un CV en PDF y nuestra herramienta eliminará automáticamente
-            datos de contacto como nombres, teléfonos y correos electrónicos.
+            datos de contacto como nombre, teléfono y correos electrónico.
           </p>
         </div>
 
