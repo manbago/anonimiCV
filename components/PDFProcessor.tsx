@@ -3,13 +3,14 @@
 import React, { useState } from 'react';
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import * as pdfjsLib from 'pdfjs-dist';
-import { Download, Loader2, FileText, CheckCircle } from 'lucide-react';
+import { Download, Loader2, CheckCircle } from 'lucide-react';
 import FileUploader from './FileUploader';
-import { identifyRedactions, TextItem, detectCandidateName, getInitials } from '../utils/anonymizer';
+import { identifyRedactions, TextItem, RedactionMatch } from '../utils/anonymizer';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface PDFProcessorProps { }
 
 type ProcessingState = 'idle' | 'processing' | 'done' | 'error';
@@ -40,14 +41,15 @@ export default function PDFProcessor({ }: PDFProcessorProps) {
             const pdf = await loadingTask.promise;
             const numPages = pdf.numPages;
 
-            const allRedactions: { pageIndex: number; matches: any[] }[] = [];
-            let candidateName: string | null = null;
+            const allRedactions: { pageIndex: number; matches: RedactionMatch[] }[] = [];
+
 
             for (let i = 1; i <= numPages; i++) {
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
                 const viewport = page.getViewport({ scale: 1 });
 
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
                 const textItems: TextItem[] = textContent.items.map((item: any) => {
                     // pdfjs transform matrix: [scaleX, skewY, skewX, scaleY, translateX, translateY]
                     const tx = item.transform;
@@ -66,13 +68,9 @@ export default function PDFProcessor({ }: PDFProcessorProps) {
                     };
                 });
 
-                // Detect Name on First Page
-                if (i === 1) {
-                    const detected = detectCandidateName(textItems);
-                    if (detected) candidateName = detected;
-                }
 
-                const matches = identifyRedactions(textItems, i - 1, viewport.height, candidateName || undefined, customWordsList);
+
+                const matches = identifyRedactions(textItems, i - 1, viewport.height, customWordsList);
                 allRedactions.push({ pageIndex: i - 1, matches });
             }
 
@@ -88,7 +86,7 @@ export default function PDFProcessor({ }: PDFProcessorProps) {
             const pages = pdfDoc.getPages();
 
             // Placeholder Logo (a simple blue circle)
-            const logoSize = 30;
+
 
             for (let i = 0; i < pages.length; i++) {
                 const page = pages[i];
@@ -101,7 +99,7 @@ export default function PDFProcessor({ }: PDFProcessorProps) {
                 // Add Header in the new space
                 // Original top was at 'height'. New top is 'height + headerHeight'.
                 // We want to draw in that top strip.
-                const headerText = candidateName ? `CV Anonimizado - ${getInitials(candidateName)}` : 'CV Anonimizado';
+                const headerText = 'CV Anonimizado';
                 page.drawText(headerText, {
                     x: 60,
                     y: height + headerHeight - 35, // Position relative to new top
